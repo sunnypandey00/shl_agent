@@ -38,13 +38,13 @@ def retrieve_and_generate(state: AgentState) -> AgentState:
         return {"reply": "I couldn't find any assessments matching those constraints.", "recommendations": [], "end_of_conversation": False}
         
     # Generate grounded response
-    context = "\n".join([f"{d.metadata['name']} - {d.page_content}" for d in docs[:5]])
+    context = "\n".join([f"{d.metadata['name']} - {d.page_content}" for d in docs[:10]])
     prompt = f"{GENERATE_RECOMMENDATIONS_PROMPT}\n\nConstraints: {state['constraints']}\n\nCatalog Items:\n{context}"
     response = llm.invoke(prompt)
     
     # Format the output
     recs = []
-    for d in docs[:5]:
+    for d in docs[:10]:
         recs.append(Recommendation(
             name=d.metadata["name"],
             url=d.metadata["url"],
