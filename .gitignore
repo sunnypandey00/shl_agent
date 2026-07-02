@@ -1,4 +1,4 @@
-# Python/Virtual Environments
+# Python environments
 __pycache__/
 *.py[cod]
 *$py.class
@@ -14,9 +14,8 @@ env/
 .idea/
 .vscode/
 
-# Local testing scripts (Optional: We exclude these from production)
+# Testing scripts
 run_harness.py
 build_index.py
 
-# Note: We are specifically NOT ignoring data/faiss_index and data/shl_catalog.json
-# because Vercel serverless functions need these files to operate!
+# Required by Vercel

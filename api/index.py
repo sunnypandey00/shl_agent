@@ -13,10 +13,10 @@ def health_check():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
-    # Determine the turn count based on the number of messages
+    # Count message turns
     turn_count = len(request.messages)
     
-    # Initialize the state for LangGraph
+    # Initialize Graph state
     initial_state = {
         "messages": request.messages,
         "intent": None,
@@ -27,11 +27,11 @@ def chat_endpoint(request: ChatRequest):
         "turn_count": turn_count
     }
     
-    # Execute the graph
+    # Run the graph
     final_state = agent_app.invoke(initial_state)
     
-    # Schema Validator Boundary
-    # Ensure we return an empty array if recommendations is None
+    # Schema validation boundary
+    # Default empty recommendations
     recs = final_state.get("recommendations", [])
     if recs is None:
         recs = []

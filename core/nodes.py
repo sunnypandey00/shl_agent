@@ -16,7 +16,7 @@ def extract_and_route(state: AgentState) -> AgentState:
     response = llm.invoke(prompt)
     intent = get_content(response).strip().lower()
     
-    # Simple constraint extraction (combining previous constraints with the new message)
+    # Extract constraints
     last_msg = state["messages"][-1].content
     constraints = state.get("constraints", "") + " " + last_msg
     
@@ -32,17 +32,17 @@ def ask_question(state: AgentState) -> AgentState:
     return {"reply": get_content(response), "recommendations": [], "end_of_conversation": False}
 
 def retrieve_and_generate(state: AgentState) -> AgentState:
-    # 1. Retrieve candidates
+    # Retrieve document candidates
     docs = ensemble_retriever.invoke(state["constraints"])
     if not docs:
         return {"reply": "I couldn't find any assessments matching those constraints.", "recommendations": [], "end_of_conversation": False}
         
-    # 2. Grounded Generation
+    # Generate grounded response
     context = "\n".join([f"{d.metadata['name']} - {d.page_content}" for d in docs[:5]])
     prompt = f"{GENERATE_RECOMMENDATIONS_PROMPT}\n\nConstraints: {state['constraints']}\n\nCatalog Items:\n{context}"
     response = llm.invoke(prompt)
     
-    # 3. Format output
+    # Format the output
     recs = []
     for d in docs[:5]:
         recs.append(Recommendation(

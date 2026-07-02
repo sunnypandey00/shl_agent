@@ -28,15 +28,15 @@ def map_test_type(item):
     name = item.get("name", "")
     keys = item.get("keys", [])
     
-    # 1. Special SVAR/Language test override
+    # Handle language overrides
     if "svar" in name.lower() or "spoken" in name.lower():
         return "K"
         
-    # 2. Development override
+    # Handle development overrides
     if "Development & 360" in keys:
         return "D"
         
-    # 3. Standard Key Mapping
+    # Standard key mapping
     letters = []
     for k in keys:
         if k == "Ability & Aptitude":
@@ -52,14 +52,14 @@ def map_test_type(item):
         elif k in ["Simulations", "Assessment Exercises"]:
             letters.append("S")
             
-    # Remove duplicates but maintain order
+    # Remove duplicate keys
     unique_letters = []
     for l in letters:
         if l not in unique_letters:
             unique_letters.append(l)
             
     if not unique_letters:
-        return "K" # Default fallback
+        return "K" # Default fallback key
         
     return ",".join(unique_letters)
 
@@ -68,7 +68,7 @@ def initialize_retriever():
     data_path = os.path.join(current_dir, "..", "data", "shl_catalog.json")
     
     try:
-        # strict=False is used in case of unescaped control characters in the JSON
+        # Handle unescaped json
         with open("data/shl_catalog.json", "r", encoding="utf-8") as f:
             catalog = json.load(f, strict=False)
     except Exception as e:
@@ -77,12 +77,12 @@ def initialize_retriever():
 
     documents = []
     for item in catalog:
-        # Create a rich text representation for the vector embedding
+        # Create text representation
         page_content = f"Name: {item.get('name', '')}\n"
         page_content += f"Description: {item.get('description', '')}\n"
         page_content += f"Keys: {', '.join(item.get('keys', []))}\n"
         
-        # Extract metadata exactly as API expects
+        # Extract document metadata
         metadata = {
             "name": item.get("name", ""),
             "url": item.get("link", ""),
@@ -95,22 +95,21 @@ def initialize_retriever():
     if not documents:
         return None
 
-    # Initialize Gemini Embeddings (Assumes GOOGLE_API_KEY is set in environment)
+    # Initialize Gemini embeddings
     embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2", max_retries=3)
     
-    # 1. Dense Retriever (FAISS)
-    # Load the offline built index to bypass Vercel cold-start constraints and API rate limits
+    # Load FAISS index
     faiss_vectorstore = FAISS.load_local("data/faiss_index", embeddings, allow_dangerous_deserialization=True)
     faiss_retriever = faiss_vectorstore.as_retriever(search_kwargs={"k": 10})
     
-    # 2. Sparse Retriever (BM25)
+    # Load BM25 index
     bm25_retriever = BM25Retriever.from_documents(documents)
     bm25_retriever.k = 10
     
-    # 3. Custom Ensemble Retriever (Hybrid)
+    # Create hybrid retriever
     ensemble_retriever = CustomEnsembleRetriever(bm25_retriever, faiss_retriever)
     
     return ensemble_retriever
 
-# Global instance initialized on startup
+# Global retriever instance
 ensemble_retriever = initialize_retriever()

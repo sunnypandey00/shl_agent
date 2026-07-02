@@ -8,10 +8,10 @@ def intent_router(state: AgentState) -> str:
     elif intent == "compare":
         return "compare"
     elif intent == "clarify":
-        # Turn Limit Guardrail (max 8 turns total, we force recommendation at turn 6)
+        # Turn limit guardrail
         if state.get("turn_count", 0) >= 6:
             return "recommend"
         return "clarify"
     else: 
-        # For 'recommend' and 'refine' intents
+        # Handle other intents
         return "recommend"
