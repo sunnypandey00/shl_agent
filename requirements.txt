@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+langchain
+langchain-core
+langchain-community
+langgraph
+faiss-cpu
+rank_bm25
+langchain-google-genai
+python-dotenv
