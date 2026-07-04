@@ -16,10 +16,18 @@ class CustomEnsembleRetriever:
         
         fused_scores = {}
         for rank, doc in enumerate(bm25_docs):
-            fused_scores[doc.page_content] = {"score": fused_scores.get(doc.page_content, {"score": 0.0})["score"] + 1.0 / (rank + 60), "doc": doc}
+            name = doc.metadata["name"]
+            if name not in fused_scores:
+                fused_scores[name] = {"score": 0.0, "doc": doc}
+            fused_scores[name]["score"] += 1.0 / (rank + 60)
             
         for rank, doc in enumerate(faiss_docs):
-            fused_scores[doc.page_content] = {"score": fused_scores.get(doc.page_content, {"score": 0.0})["score"] + 1.0 / (rank + 60), "doc": doc}
+            name = doc.metadata["name"]
+            if name not in fused_scores:
+                fused_scores[name] = {"score": 0.0, "doc": doc}
+            # Prefer FAISS document metadata if both match (contains richer metadata from the full index build)
+            fused_scores[name]["doc"] = doc
+            fused_scores[name]["score"] += 1.0 / (rank + 60)
             
         sorted_docs = sorted(fused_scores.values(), key=lambda x: x["score"], reverse=True)
         return [item["doc"] for item in sorted_docs[:10]]
@@ -49,8 +57,10 @@ def map_test_type(item):
             letters.append("K")
         elif k == "Personality & Behavior":
             letters.append("P")
-        elif k in ["Simulations", "Assessment Exercises"]:
+        elif k == "Simulations":
             letters.append("S")
+        elif k == "Assessment Exercises":
+            letters.append("E")
             
     # Remove duplicate keys
     unique_letters = []
