@@ -25,3 +25,13 @@ If no retrieved items match the constraints, politely inform the user."""
 COMPARE_PROMPT = """You are an SHL Assessment Recommender.
 The user wants to compare the following retrieved assessments.
 Using ONLY the descriptions provided from the catalog, explain the differences. Do not use outside knowledge."""
+
+UPDATE_CONSTRAINTS_PROMPT = """You are a hiring constraint extraction assistant.
+Analyze the conversation history and the latest user message. Update the summary of the active hiring constraints (job role, seniority, required skills, and specific preferences).
+If the user explicitly contradicts or changes a previous preference (e.g., "not Java anymore, give me C++"), remove the old constraint and replace it with the new one.
+Do not include conversational fluff. Output ONLY the updated constraint summary.
+
+Existing Constraints: {existing_constraints}
+Latest User Message: {latest_message}
+
+Updated Constraints:"""

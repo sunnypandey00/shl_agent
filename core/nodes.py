@@ -1,6 +1,6 @@
 from core.state import AgentState
 from services.llm import llm
-from services.prompts import ROUTER_SYSTEM_PROMPT, CLARIFY_PROMPT, REFUSE_PROMPT, GENERATE_RECOMMENDATIONS_PROMPT, COMPARE_PROMPT
+from services.prompts import ROUTER_SYSTEM_PROMPT, CLARIFY_PROMPT, REFUSE_PROMPT, GENERATE_RECOMMENDATIONS_PROMPT, COMPARE_PROMPT, UPDATE_CONSTRAINTS_PROMPT
 from services.retriever import ensemble_retriever
 from models.schemas import Recommendation
 
@@ -16,11 +16,17 @@ def extract_and_route(state: AgentState) -> AgentState:
     response = llm.invoke(prompt)
     intent = get_content(response).strip().lower()
     
-    # Extract constraints
+    # Update constraints via LLM
+    existing_constraints = state.get("constraints", "")
     last_msg = state["messages"][-1].content
-    constraints = state.get("constraints", "") + " " + last_msg
+    constraint_prompt = UPDATE_CONSTRAINTS_PROMPT.format(
+        existing_constraints=existing_constraints,
+        latest_message=last_msg
+    )
+    constraint_response = llm.invoke(constraint_prompt)
+    constraints = get_content(constraint_response).strip()
     
-    return {"intent": intent, "constraints": constraints.strip()}
+    return {"intent": intent, "constraints": constraints}
 
 def handle_refusal(state: AgentState) -> AgentState:
     response = llm.invoke(f"{REFUSE_PROMPT}\n\nUser: {state['messages'][-1].content}")
@@ -41,17 +47,22 @@ def retrieve_and_generate(state: AgentState) -> AgentState:
     context = "\n".join([f"{d.metadata['name']} - {d.page_content}" for d in docs[:10]])
     prompt = f"{GENERATE_RECOMMENDATIONS_PROMPT}\n\nConstraints: {state['constraints']}\n\nCatalog Items:\n{context}"
     response = llm.invoke(prompt)
+    reply = get_content(response)
     
-    # Format the output
+    # Programmatic Grounding Validator Boundary:
+    # Only include recommendations that are explicitly mentioned by the LLM in the text reply
     recs = []
     for d in docs[:10]:
-        recs.append(Recommendation(
-            name=d.metadata["name"],
-            url=d.metadata["url"],
-            test_type=d.metadata["test_type"]
-        ))
+        clean_name = d.metadata["name"].replace("-", " ").replace("  ", " ").strip().lower()
+        clean_reply = reply.replace("-", " ").replace("  ", " ").strip().lower()
+        if clean_name in clean_reply:
+            recs.append(Recommendation(
+                name=d.metadata["name"],
+                url=d.metadata["url"],
+                test_type=d.metadata["test_type"]
+            ))
         
-    return {"reply": get_content(response), "recommendations": recs, "end_of_conversation": True}
+    return {"reply": reply, "recommendations": recs, "end_of_conversation": True}
 
 def compare_items(state: AgentState) -> AgentState:
     docs = ensemble_retriever.invoke(state["messages"][-1].content)
