@@ -4,7 +4,7 @@ import re
 
 from core.state import AgentState
 from services.llm import llm
-from services.retriever import ensemble_retriever, get_catalog_docs_by_names
+from services.retriever import get_ensemble_retriever, get_catalog_docs_by_names
 from models.schemas import Recommendation
 from services.prompts import (
     STATE_EXTRACT_PROMPT,
@@ -69,11 +69,12 @@ def parse_json(text: str) -> dict:
 
 
 def retrieve_candidates(query: str):
-    if ensemble_retriever is None:
+    retriever = get_ensemble_retriever()
+    if retriever is None:
         logger.error("Retriever is unavailable")
         return []
     try:
-        return ensemble_retriever.invoke(query)
+        return retriever.invoke(query)
     except Exception:
         logger.exception("Retriever invocation failed")
         return []

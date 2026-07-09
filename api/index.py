@@ -5,10 +5,18 @@ load_dotenv()
 import logging
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from models.schemas import ChatRequest, ChatResponse
 from core.graph import agent_app
 
 app = FastAPI(title="SHL Conversational Assessment Recommender")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 logger = logging.getLogger(__name__)
 
 

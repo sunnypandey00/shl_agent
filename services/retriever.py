@@ -125,21 +125,42 @@ def load_catalog_documents():
     return documents
 
 
-CATALOG_DOCUMENTS = load_catalog_documents()
-CATALOG_BY_NAME = {doc.metadata["name"].lower(): doc for doc in CATALOG_DOCUMENTS}
+_CATALOG_DOCUMENTS = None
+_CATALOG_BY_NAME = None
+_ensemble_retriever = None
+
+
+def get_catalog_documents():
+    global _CATALOG_DOCUMENTS
+    if _CATALOG_DOCUMENTS is None:
+        # Load catalog docs
+        _CATALOG_DOCUMENTS = load_catalog_documents()
+    return _CATALOG_DOCUMENTS
+
+
+def get_catalog_by_name():
+    global _CATALOG_BY_NAME
+    if _CATALOG_BY_NAME is None:
+        # Map by name
+        _CATALOG_BY_NAME = {
+            doc.metadata["name"].lower(): doc for doc in get_catalog_documents()
+        }
+    return _CATALOG_BY_NAME
 
 
 def get_catalog_docs_by_names(names):
     docs = []
     seen = set()
+    catalog_by_name = get_catalog_by_name()
+    catalog_docs = get_catalog_documents()
     for wanted in names:
         wanted_lower = wanted.lower()
-        doc = CATALOG_BY_NAME.get(wanted_lower)
+        doc = catalog_by_name.get(wanted_lower)
         if doc is None:
             doc = next(
                 (
                     candidate
-                    for candidate in CATALOG_DOCUMENTS
+                    for candidate in catalog_docs
                     if wanted_lower in candidate.metadata["name"].lower()
                 ),
                 None,
@@ -151,7 +172,7 @@ def get_catalog_docs_by_names(names):
 
 
 def initialize_retriever():
-    documents = CATALOG_DOCUMENTS
+    documents = get_catalog_documents()
     if not documents:
         return None
 
@@ -184,5 +205,9 @@ def initialize_retriever():
         return CustomEnsembleRetriever(bm25_retriever, None)
 
 
-# Global retriever instance
-ensemble_retriever = initialize_retriever()
+def get_ensemble_retriever():
+    global _ensemble_retriever
+    if _ensemble_retriever is None:
+        # Run initialization pipeline
+        _ensemble_retriever = initialize_retriever()
+    return _ensemble_retriever
