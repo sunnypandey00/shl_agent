@@ -1,36 +1,86 @@
 from langgraph.graph import StateGraph, END
 from core.state import AgentState
-from core.nodes import extract_and_route, handle_refusal, ask_question, retrieve_and_generate, compare_items
-from core.routers import intent_router
+from core.nodes import (
+    StateExtract,
+    HandleRefusal,
+    RetrieveSpecific,
+    HandleCompare,
+    InfoSufficiency,
+    AskQuestion,
+    QueryForm,
+    CandidateRetrieval,
+    CandidateRanking,
+    GroundedGen,
+    GroundingVal,
+)
+from core.routers import intent_router, sufficiency_router, confidence_router
 
 workflow = StateGraph(AgentState)
 
-# Add graph nodes
-workflow.add_node("extract_and_route", extract_and_route)
-workflow.add_node("handle_refusal", handle_refusal)
-workflow.add_node("ask_question", ask_question)
-workflow.add_node("retrieve_and_generate", retrieve_and_generate)
-workflow.add_node("compare_items", compare_items)
+# Add all nodes
+workflow.add_node("StateExtract", StateExtract)
+workflow.add_node("HandleRefusal", HandleRefusal)
+workflow.add_node("RetrieveSpecific", RetrieveSpecific)
+workflow.add_node("HandleCompare", HandleCompare)
+workflow.add_node("InfoSufficiency", InfoSufficiency)
+workflow.add_node("AskQuestion", AskQuestion)
+workflow.add_node("QueryForm", QueryForm)
+workflow.add_node("CandidateRetrieval", CandidateRetrieval)
+workflow.add_node("CandidateRanking", CandidateRanking)
+workflow.add_node("GroundedGen", GroundedGen)
+workflow.add_node("GroundingVal", GroundingVal)
 
-# Add graph edges
-workflow.set_entry_point("extract_and_route")
+# Set entry point
+workflow.set_entry_point("StateExtract")
 
+# Define intent router
 workflow.add_conditional_edges(
-    "extract_and_route",
+    "StateExtract",
     intent_router,
     {
-        "refuse": "handle_refusal",
-        "clarify": "ask_question",
-        "recommend": "retrieve_and_generate",
-        "compare": "compare_items"
-    }
+        "Refuse (Out of Scope)": "HandleRefusal",
+        "Compare": "RetrieveSpecific",
+        "Refine": "QueryForm",
+        "Clarify / Recommend": "InfoSufficiency",
+    },
 )
 
-# Route to end
-workflow.add_edge("handle_refusal", END)
-workflow.add_edge("ask_question", END)
-workflow.add_edge("retrieve_and_generate", END)
-workflow.add_edge("compare_items", END)
+# Define branch edges
+workflow.add_edge("HandleRefusal", END)
+workflow.add_edge("RetrieveSpecific", "HandleCompare")
+workflow.add_edge("HandleCompare", END)
 
-# Compile the graph
+# Define sufficiency router
+workflow.add_conditional_edges(
+    "InfoSufficiency",
+    sufficiency_router,
+    {
+        "Budget Reached (>= 4 user turns)": "QueryForm",
+        "Missing Slots": "AskQuestion",
+        "Sufficient Info": "QueryForm",
+    },
+)
+
+# Define ask question
+workflow.add_edge("AskQuestion", END)
+
+# Define retrieval pipeline
+workflow.add_edge("QueryForm", "CandidateRetrieval")
+workflow.add_edge("CandidateRetrieval", "CandidateRanking")
+
+# Define confidence router
+workflow.add_conditional_edges(
+    "CandidateRanking",
+    confidence_router,
+    {
+        "Low Confidence AND Under Budget": "AskQuestion",
+        "Confidence OK OR Budget Reached": "GroundedGen",
+    },
+)
+
+# Define generation pipeline
+workflow.add_edge("GroundedGen", "GroundingVal")
+workflow.add_edge("GroundingVal", END)
+
+# Compile execution graph
 agent_app = workflow.compile()

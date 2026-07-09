@@ -18,4 +18,12 @@ env/
 run_harness.py
 build_index.py
 
+# Generated local outputs
+*.log
+*_err*.log
+server_out.log
+server_err.log
+new_graph.png
+labeled_graph.png
+
 # Required by Vercel
