@@ -17,7 +17,7 @@ Read the files in this order. Each file builds on the previous one.
 
 | Order | File | Why Read Next |
 |---|---|---|
-| 3 | `services/retriever.py` | Builds runtime BM25 documents, loads FAISS, and fuses both rankings with reciprocal rank fusion: `1 / (rank + 60)`. |
+| 3 | `services/retriever.py` | Lazy loads BM25 documents, FAISS index, and fuses both rankings with reciprocal rank fusion: `1 / (rank + 60)`. |
 
 ---
 
@@ -36,7 +36,7 @@ Read the files in this order. Each file builds on the previous one.
 |---|---|---|
 | 6 | `core/state.py` | Defines graph state and how extracted slots merge across turns. |
 | 7 | `core/routers.py` | Contains deterministic routing decisions after node outputs are written into state. |
-| 8 | `core/nodes.py` | Contains the actual graph actions: extraction, retrieval, ranking, response generation, and recommendation shaping. |
+| 8 | `core/nodes.py` | Contains the actual graph actions: extraction, retrieval (with post-retrieval slot filtering), ranking, response generation, and recommendation shaping. |
 | 9 | `core/graph.py` | Wires the LangGraph nodes and conditional edges together. |
 
 ---
@@ -46,7 +46,7 @@ Read the files in this order. Each file builds on the previous one.
 | Order | File | Why Read Next |
 |---|---|---|
 | 10 | `models/schemas.py` | Defines request and response schemas. |
-| 11 | `api/index.py` | FastAPI entry point for `/health` and `/chat`; builds initial graph state and returns schema-compliant responses. |
+| 11 | `api/index.py` | FastAPI entry point for `/health` and `/chat` (with CORS configuration); builds initial graph state and returns schema-compliant responses. |
 
 ---
 
