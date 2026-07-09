@@ -17,6 +17,8 @@ env/
 # Testing scripts
 run_harness.py
 build_index.py
+draw_graph.py
+READING_PLAN.md
 
 # Generated local outputs
 *.log
