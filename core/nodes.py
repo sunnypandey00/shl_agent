@@ -228,9 +228,7 @@ def deterministic_candidates(query: str, state: AgentState):
 
 def rerank_candidates(query: str, docs, state: AgentState):
     pinned = deterministic_candidates(query, state)
-    if pinned:
-        return pinned[:20]
-    return docs[:20]
+    return merge_doc_lists(pinned, docs)[:20]
 
 
 def filter_by_slots(docs, slots):
